@@ -1,0 +1,58 @@
+name: Publish to npm
+
+# Runs only when a GitHub Release is published. Uses npm Trusted Publishing (OIDC):
+# no NPM_TOKEN secret. Configure the trusted publisher on npmjs.com for
+# Desearch-ai/desearch-ai-sdk, workflow file publish.yml, environment prod.
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: prod
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Check tag matches package.json version
+        run: |
+          PKG="v$(node -p "require('./package.json').version")"
+          if [ "$PKG" != "${{ github.event.release.tag_name }}" ]; then
+            echo "Release tag ${{ github.event.release.tag_name }} does not match package.json $PKG"
+            exit 1
+          fi
+
+      - name: Skip if this version is already on npm
+        id: check
+        run: |
+          V="$(node -p "require('./package.json').version")"
+          if npm view "desearch-ai-sdk@$V" version > /dev/null 2>&1; then
+            echo "desearch-ai-sdk@$V is already on npm, skipping."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install, typecheck, build, test
+        if: steps.check.outputs.skip == 'false'
+        run: npm ci && npm run typecheck && npm run build && npm test
+
+      - name: Upgrade npm for Trusted Publishing
+        if: steps.check.outputs.skip == 'false'
+        run: npm install -g npm@11
+
+      - name: Publish with provenance
+        if: steps.check.outputs.skip == 'false'
+        run: npm publish --provenance --access public

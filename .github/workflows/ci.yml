@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: Run live Desearch API tests (billed to the DESEARCH_API_KEY secret)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - name: Pack and smoke-import the tarball
+        run: |
+          npm pack
+          mkdir -p /tmp/smoke && cd /tmp/smoke && npm init -y > /dev/null
+          npm install "$GITHUB_WORKSPACE"/desearch-ai-sdk-*.tgz ai zod
+          node -e "import('desearch-ai-sdk').then(m => { const t = m.desearchTools({ apiKey: 'x' }); if (Object.keys(t).length !== 6) process.exit(1); console.log('ESM ok') })"
+          node -e "const m = require('desearch-ai-sdk'); if (typeof m.webSearch !== 'function') process.exit(1); console.log('CJS ok')"
+
+  live:
+    if: github.event_name == 'workflow_dispatch' && inputs.live
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:live
+        env:
+          DESEARCH_API_KEY: ${{ secrets.DESEARCH_API_KEY }}
