@@ -1,0 +1,64 @@
+{
+  "name": "desearch-ai-sdk",
+  "version": "0.1.0",
+  "description": "Desearch search tools for the AI SDK: AI search, web search, X search, link search and page fetch.",
+  "license": "MIT",
+  "author": "Desearch",
+  "homepage": "https://desearch.ai",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Desearch-ai/desearch-ai-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Desearch-ai/desearch-ai-sdk/issues"
+  },
+  "keywords": ["ai", "ai-sdk", "tools", "search", "web-search", "x", "desearch", "agents"],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run test/unit.test.ts",
+    "test:live": "vitest run test/live.test.ts test/generate-text.test.ts",
+    "prepublishOnly": "npm run typecheck && npm run build && npm test"
+  },
+  "dependencies": {
+    "desearch-js": "^1.6.0"
+  },
+  "peerDependencies": {
+    "ai": "^7.0.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ai": "^7.0.143",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0",
+    "zod": "^4.6.7"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
